@@ -1,0 +1,88 @@
+    def high_frequency(self, codes_list):
+        # 进行初始化
+        self.init()
+        self.codes_list = codes_list
+        # 获取当前时间
+        self.get_current_time_formatted()
+        # 获取前19个十五分钟前的时间
+        self.endtime_get()
+
+        thsUrl = 'https://quantapi.51ifind.com/api/v1/high_frequency'
+        # self.ping_url(thsUrl)
+        # 将代码列表转换为逗号分隔的字符串
+        codes_str = ','.join(codes_list)
+        thsPara = {
+            "codes": codes_str,
+            "indicators": "open,high,low,close",
+            "starttime": self.end_time,
+            "endtime": self.new_time_str,
+        }
+        try:
+            # 发送 POST 请求
+            thsResponse = requests.post(url=thsUrl, json=thsPara, headers=self.thsHeaders)
+            # 检查响应状态码
+            thsResponse.raise_for_status()  # 如果状态码不是 200，抛出异常
+            # 自动检测编码
+            thsResponse.encoding = thsResponse.apparent_encoding
+            # 获取响应内容
+            data_str = thsResponse.text
+            # 解析 JSON 数据
+            data = json.loads(data_str)
+            # print(data)
+        except requests.exceptions.RequestException as e:
+            print(f"请求发生错误: {e}")
+        except json.JSONDecodeError as e:
+            print(f"JSON 解析错误: {e}")
+        except Exception as e:
+            print(f"发生其他错误: {e}")
+        # 获取多个表格数据
+        # 获取每分钟的收盘价
+        # 顺序为输入的列表的顺序
+        for i in range(len(data['tables'])):
+            table = data['tables'][i]['table']
+            close_price = table['close']
+            self.close_prices.append(close_price)
+
+        # 获取时间-具体
+        for i in range(len(data['tables'])):
+            table = data['tables'][i]
+            min_time = table['time']
+            self.min_times.append(min_time)
+
+        # # print(self.min_times)
+        # if len(self.close_prices[0]) >= 289:
+        #     print('9999988*****')
+        # else:
+        #     print('微气候大会 大苏打撒', len(self.close_prices[0]))
+        print(self.codes_list)
+        # 获取每15分钟收盘价
+        self.process_close_prices()
+        for close_price_15min in self.close_prices_15min:
+            if len(close_price_15min) > 19:
+                close_price_15min_m = close_price_15min[:19]
+            else:
+                close_price_15min_m = close_price_15min
+            self.close_prices_15min_new.append(close_price_15min_m)
+
+        print(self.close_prices_15min_new)
+        self.fix_value = copy.deepcopy(self.close_prices_15min_new)
+
+        # 创建一个线程来运行持续运行的函数
+        continuous_thread = threading.Thread(target=self.real_time, args=(self.codes_list, 'latest'))
+        continuous_thread.daemon = True
+        # 启动线程
+        continuous_thread.start()
+        # 等待 self.real_prices_g 更新
+        self.update_event.wait()
+
+        # 加上最新价格后的15minK线
+        # 检查两个列表长度是否一致
+        if len(list(self.real_prices_g)) == len(self.close_prices_15min_new):
+            # 遍历两个列表
+            for num, sublist in zip(self.real_prices_g, self.close_prices_15min_new):
+                # 将数字添加到子列表的末尾
+                sublist.append(num)
+                self.close_prices_15min_new_.append(sublist)
+            print('长度一致！！！', self.close_prices_15min_new_)
+        else:
+            print("两个列表的长度不一致，无法进行对位添加操作。")
