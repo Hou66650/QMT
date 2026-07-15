@@ -1,0 +1,3 @@
+-r requirements.txt
+akshare==1.17.35
+tushare==1.4.24

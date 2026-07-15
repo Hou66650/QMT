@@ -1,0 +1,26 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+frontend/.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+backend/data/
+backend/tests/.watchlist-test.json
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/.wrangler/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
