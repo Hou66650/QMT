@@ -47,9 +47,25 @@ class AkShareProvider(MarketDataProvider):
     def get_history(
         self, code: str, start: date, end: date, period: str = "daily"
     ) -> list[HistoryBar]:
+        if period == "hourly":
+            frame = self._ak().stock_zh_a_hist_min_em(
+                symbol=normalize_code(code),
+                period="60",
+                start_date=f"{start.isoformat()} 09:30:00",
+                end_date=f"{end.isoformat()} 15:00:00",
+                adjust="qfq",
+            )
+            return [
+                HistoryBar(
+                    date=row["时间"], open=float(row["开盘"]), high=float(row["最高"]),
+                    low=float(row["最低"]), close=float(row["收盘"]),
+                    volume=float(row["成交量"]), amount=float(row["成交额"]),
+                )
+                for _, row in frame.iterrows()
+            ]
         period_map = {"daily": "daily", "weekly": "weekly", "monthly": "monthly"}
         if period not in period_map:
-            raise ValueError("period 仅支持 daily、weekly、monthly")
+            raise ValueError("period 仅支持 hourly、daily、weekly、monthly")
         frame = self._ak().stock_zh_a_hist(
             symbol=normalize_code(code),
             period=period_map[period],

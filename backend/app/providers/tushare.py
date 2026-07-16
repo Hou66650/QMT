@@ -37,6 +37,8 @@ class TushareProvider(MarketDataProvider):
         )
 
     def get_history(self, code: str, start: date, end: date, period: str = "daily") -> list[HistoryBar]:
+        if period == "hourly":
+            raise ValueError("Tushare 当前配置不提供 60 分钟 K 线，请改用 AkShareProvider")
         endpoints = {
             "daily": self.pro.daily,
             "weekly": self.pro.weekly,

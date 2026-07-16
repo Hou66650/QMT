@@ -21,7 +21,7 @@ class Quote(BaseModel):
 
 
 class HistoryBar(BaseModel):
-    date: date
+    date: datetime | date
     open: float
     high: float
     low: float

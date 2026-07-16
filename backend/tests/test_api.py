@@ -32,10 +32,14 @@ def test_history_contains_bollinger_and_signal():
 
 
 def test_history_periods_are_resampled():
+    hourly = client.get("/api/stocks/600519/history?period=hourly").json()["items"]
     daily = client.get("/api/stocks/600519/history?period=daily").json()["items"]
     weekly = client.get("/api/stocks/600519/history?period=weekly").json()["items"]
     monthly = client.get("/api/stocks/600519/history?period=monthly").json()["items"]
     assert len(daily) > len(weekly) > len(monthly)
+    assert len(hourly) >= 20
+    assert "T" in hourly[-1]["date"]
+    assert hourly[-1]["middle_band"] is not None
 
 
 def test_stock_search_and_trade_calendar():

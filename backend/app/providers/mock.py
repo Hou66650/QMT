@@ -1,7 +1,7 @@
 import hashlib
 import math
 import random
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from app.schemas import HistoryBar, Quote, StockInfo, TradeDay
 
@@ -60,14 +60,30 @@ class MockProvider(MarketDataProvider):
     def get_history(
         self, code: str, start: date, end: date, period: str = "daily"
     ) -> list[HistoryBar]:
-        if period not in {"daily", "weekly", "monthly"}:
-            raise ValueError("period 仅支持 daily、weekly、monthly")
+        if period not in {"hourly", "daily", "weekly", "monthly"}:
+            raise ValueError("period 仅支持 hourly、daily、weekly、monthly")
         code = normalize_code(code)
         rng = random.Random(self._seed(code) + start.toordinal())
         current = 12 + self._seed(code) % 48000 / 100
         result: list[HistoryBar] = []
         day = start
         index = 0
+        if period == "hourly":
+            slots = ((10, 30), (11, 30), (14, 0), (15, 0))
+            while day <= end:
+                if day.weekday() < 5:
+                    for hour, minute in slots:
+                        drift = math.sin(index / 7) * 0.004 + rng.uniform(-0.012, 0.012)
+                        open_price = current * (1 + rng.uniform(-0.004, 0.004))
+                        close = max(1, open_price * (1 + drift))
+                        high = max(open_price, close) * (1 + rng.uniform(0.001, 0.008))
+                        low = min(open_price, close) * (1 - rng.uniform(0.001, 0.008))
+                        volume = float(rng.randint(50_000, 2_000_000))
+                        result.append(HistoryBar(date=datetime.combine(day, time(hour, minute)), open=round(open_price, 2), high=round(high, 2), low=round(low, 2), close=round(close, 2), volume=volume, amount=round(volume * close, 2)))
+                        current = close
+                        index += 1
+                day += timedelta(days=1)
+            return result[-120:]
         while day <= end:
             if day.weekday() < 5:
                 drift = math.sin(index / 8) * 0.006 + rng.uniform(-0.022, 0.022)

@@ -54,7 +54,7 @@ async def history(
     code: str,
     start: date = Query(default_factory=lambda: date.today() - timedelta(days=120)),
     end: date = Query(default_factory=date.today),
-    period: str = Query(default="daily", pattern="^(daily|weekly|monthly)$"),
+    period: str = Query(default="daily", pattern="^(hourly|daily|weekly|monthly)$"),
 ):
     from app.main import market_service
     return await market_service.get_history(code, start, end, period)
