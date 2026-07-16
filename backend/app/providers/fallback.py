@@ -21,7 +21,13 @@ class FallbackProvider(MarketDataProvider):
         try:
             return primary_call()
         except Exception as exc:
-            logger.warning("%s failed for %s; using %s", self.primary.name, operation, self.fallback.name, exc_info=exc)
+            logger.warning(
+                "%s failed for %s (%s); using %s",
+                self.primary.name,
+                operation,
+                exc,
+                self.fallback.name,
+            )
             return fallback_call()
 
     def get_quote(self, code: str) -> Quote:
@@ -29,6 +35,21 @@ class FallbackProvider(MarketDataProvider):
 
     def get_history(self, code: str, start: date, end: date, period: str = "daily") -> list[HistoryBar]:
         return self._call("history", lambda: self.primary.get_history(code, start, end, period), lambda: self.fallback.get_history(code, start, end, period))
+
+    def get_history_with_source(
+        self, code: str, start: date, end: date, period: str = "daily"
+    ) -> tuple[list[HistoryBar], MarketDataProvider]:
+        """Return history together with the provider that actually supplied it."""
+        try:
+            return self.primary.get_history(code, start, end, period), self.primary
+        except Exception as exc:
+            logger.warning(
+                "%s failed for history (%s); using %s",
+                self.primary.name,
+                exc,
+                self.fallback.name,
+            )
+            return self.fallback.get_history(code, start, end, period), self.fallback
 
     def get_stock_list(self) -> list[StockInfo]:
         return self._call("stock list", self.primary.get_stock_list, self.fallback.get_stock_list)

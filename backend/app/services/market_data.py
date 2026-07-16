@@ -4,6 +4,7 @@ from typing import Callable, TypeVar
 
 from app.config import Settings
 from app.providers.base import MarketDataProvider
+from app.providers.fallback import FallbackProvider
 from app.schemas import HistoryResponse, Quote, StockInfo, TradeDay
 
 from .cache import TTLCache
@@ -48,12 +49,18 @@ class MarketDataService:
         cached = self.cache.get(key)
         if cached:
             return cached
-        items = await self._run(lambda: self.provider.get_history(code, start, end, period))
+        source = self.provider
+        if isinstance(self.provider, FallbackProvider):
+            items, source = await self._run(
+                lambda: self.provider.get_history_with_source(code, start, end, period)
+            )
+        else:
+            items = await self._run(lambda: self.provider.get_history(code, start, end, period))
         items = add_bollinger_bands(items)
         signal, reason = strategy_signal(items)
         response = HistoryResponse(
-            code=code.upper(), period=period, provider=self.provider.name,
-            is_mock=self.provider.is_mock, signal=signal, signal_reason=reason, items=items,
+            code=code.upper(), period=period, provider=source.name,
+            is_mock=source.is_mock, signal=signal, signal_reason=reason, items=items,
         )
         self.cache.set(key, response, self.settings.history_cache_seconds)
         return response

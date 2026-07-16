@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
@@ -68,3 +69,23 @@ def test_live_provider_falls_back_to_clearly_marked_mock_data():
     quote = FallbackProvider(primary, MockProvider()).get_quote("600519")
     assert quote.provider == "MockProvider"
     assert quote.is_mock is True
+
+
+def test_fallback_history_reports_the_actual_source():
+    class BrokenProvider(MockProvider):
+        name = "BrokenProvider"
+        is_mock = False
+
+        def get_history(self, *args, **kwargs):
+            raise ConnectionError("upstream unavailable")
+
+    from app.config import Settings
+    from app.services.market_data import MarketDataService
+
+    service = MarketDataService(
+        FallbackProvider(BrokenProvider(), MockProvider()), Settings(market_data_provider="mock")
+    )
+    response = asyncio.run(service.get_history("600519", date(2026, 1, 1), date(2026, 1, 31), "daily"))
+
+    assert response.provider == "MockProvider"
+    assert response.is_mock is True
