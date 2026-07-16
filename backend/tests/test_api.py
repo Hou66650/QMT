@@ -3,6 +3,8 @@ from datetime import date, timedelta
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.providers.fallback import FallbackProvider
+from app.providers.mock import MockProvider
 
 client = TestClient(app)
 
@@ -57,3 +59,12 @@ def test_watchlist_crud():
     assert any(item["code"] == "600036" for item in created.json())
     deleted = client.delete("/api/watchlist/600036")
     assert all(item["code"] != "600036" for item in deleted.json())
+
+
+def test_live_provider_falls_back_to_clearly_marked_mock_data():
+    primary = MockProvider()
+    primary.name = "UnavailableProvider"
+    primary.get_quote = lambda _code: (_ for _ in ()).throw(ConnectionError("upstream unavailable"))
+    quote = FallbackProvider(primary, MockProvider()).get_quote("600519")
+    assert quote.provider == "MockProvider"
+    assert quote.is_mock is True

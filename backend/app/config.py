@@ -16,6 +16,7 @@ class Settings:
     app_name: str = os.getenv("APP_NAME", "天玑300量化研究系统")
     environment: str = os.getenv("ENVIRONMENT", "development")
     market_data_provider: str = os.getenv("MARKET_DATA_PROVIDER", "mock").lower()
+    market_data_fallback_provider: str = os.getenv("MARKET_DATA_FALLBACK_PROVIDER", "mock").lower()
     tushare_token: str | None = os.getenv("TUSHARE_TOKEN")
     request_timeout_seconds: float = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "8"))
     request_retries: int = int(os.getenv("REQUEST_RETRIES", "2"))

@@ -14,6 +14,8 @@ services:
         value: 3.12.8
       - key: MARKET_DATA_PROVIDER
         value: akshare
+      - key: MARKET_DATA_FALLBACK_PROVIDER
+        value: mock
       - key: CORS_ORIGINS
         value: https://tianji-300-quant-research.qijinhou666.chatgpt.site
       - key: WATCHLIST_FILE
