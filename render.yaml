@@ -20,6 +20,10 @@ services:
         value: https://tianji-300-quant-research.qijinhou666.chatgpt.site
       - key: WATCHLIST_FILE
         value: /tmp/tianji-watchlist.json
+      - key: PAPER_TRADING_FILE
+        value: /tmp/tianji-paper-trading.json
+      - key: PAPER_INITIAL_CASH
+        value: "1000000"
       - key: TRADING_ENABLED
         value: "false"
       - key: REQUEST_TIMEOUT_SECONDS

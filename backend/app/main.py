@@ -8,6 +8,7 @@ from app.api.routes import router
 from app.config import settings
 from app.providers import create_provider
 from app.services.market_data import MarketDataService
+from app.services.paper_trading import PaperTradingService
 from app.services.watchlist import WatchlistService
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 provider = create_provider(settings)
 market_service = MarketDataService(provider, settings)
 watchlist_service = WatchlistService(settings.watchlist_file)
+paper_trading_service = PaperTradingService(settings.paper_trading_file, settings.paper_initial_cash)
 
 app = FastAPI(title=settings.app_name, version="1.0.0", docs_url="/api/docs")
 app.add_middleware(

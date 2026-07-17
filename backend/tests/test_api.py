@@ -17,6 +17,7 @@ def test_health_is_safe_and_mock_by_default():
     assert response.status_code == 200
     assert response.json()["is_mock"] is True
     assert response.json()["trading_enabled"] is False
+    assert response.json()["paper_trading_enabled"] is True
 
 
 def test_quote_contract():
@@ -62,6 +63,31 @@ def test_watchlist_crud():
     assert any(item["code"] == "600036" for item in created.json())
     deleted = client.delete("/api/watchlist/600036")
     assert all(item["code"] != "600036" for item in deleted.json())
+
+
+def test_manual_paper_buy_and_sell_never_enable_real_trading(tmp_path, monkeypatch):
+    from app import main
+    from app.services.paper_trading import PaperTradingService
+
+    service = PaperTradingService(tmp_path / "paper.json", initial_cash=1_000_000)
+    monkeypatch.setattr(main, "paper_trading_service", service)
+
+    bought = client.post("/api/paper/orders", json={"code": "600519", "side": "buy", "quantity": 100})
+    assert bought.status_code == 201
+    body = bought.json()
+    assert body["order"]["side"] == "buy"
+    assert body["order"]["provider"] == "MockProvider"
+    assert body["account"]["positions"][0]["quantity"] == 100
+    assert body["account"]["real_trading_enabled"] is False
+
+    rejected = client.post("/api/paper/orders", json={"code": "600519", "side": "sell", "quantity": 101})
+    assert rejected.status_code == 400
+    assert "持仓" in rejected.json()["error"]["message"]
+
+    sold = client.post("/api/paper/orders", json={"code": "600519", "side": "sell", "quantity": 100})
+    assert sold.status_code == 201
+    assert sold.json()["account"]["positions"] == []
+    assert client.get("/api/paper/orders").json()[0]["side"] == "sell"
 
 
 def test_live_provider_falls_back_to_clearly_marked_mock_data():

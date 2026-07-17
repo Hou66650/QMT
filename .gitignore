@@ -12,6 +12,7 @@ __pycache__/
 venv/
 backend/data/
 backend/tests/.watchlist-test.json
+backend/tests/.paper-trading-test.json
 
 # Frontend
 frontend/node_modules/

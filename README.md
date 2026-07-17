@@ -2,7 +2,7 @@
 
 这是对大学时期“天玑300智能低吸交易系统”Demo 的第一阶段重构。旧版 Tkinter、AI 分析及交易实验代码仍原样保留在项目根目录；新系统位于 `backend/` 与 `frontend/`。
 
-当前版本只提供行情研究、数据展示和策略信号。**不包含、不导入、也不会调用任何实盘下单逻辑。** 页面及接口输出仅供学习研究，不构成投资建议。
+当前版本提供行情研究、数据展示、策略信号和手动模拟交易。**不包含、不导入、也不会调用任何实盘下单逻辑；模拟买卖只在用户点击后记账，不会自动执行。** 页面及接口输出仅供学习研究，不构成投资建议。
 
 ## 已实现
 
@@ -11,6 +11,7 @@
 - 默认可复现的 `MockProvider`，以及延迟加载的 `AkShareProvider`、`TushareProvider`
 - 超时、指数退避重试、内存 TTL 缓存和统一错误响应
 - 本地 JSON 自选股存储，服务层可在后续替换为 PostgreSQL
+- 独立的手动模拟账户，包含现金、持仓、盈亏和成交记录；实盘权限始终关闭
 - 历史 K 线、20 周期布林线和低吸观察信号
 - 响应式 React 研究看板，断开后端时自动保留 Mock 演示
 - Token 仅由后端环境变量读取，前端永不接触数据源密钥
@@ -100,6 +101,9 @@ pip install -r requirements-marketdata.txt
 - `GET /api/watchlist`
 - `POST /api/watchlist`，JSON：`{"code":"600519","name":"贵州茅台"}`
 - `DELETE /api/watchlist/{code}`
+- `GET /api/paper/account`
+- `GET /api/paper/orders?limit=30`
+- `POST /api/paper/orders`，JSON：`{"code":"600519","side":"buy","quantity":100}`
 - `WS /ws/quotes`
 
 ## 验证

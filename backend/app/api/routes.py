@@ -4,9 +4,23 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.config import settings
-from app.schemas import HealthResponse, HistoryResponse, Quote, StockInfo, TradeDay, WatchlistItem
+from app.schemas import (
+    HealthResponse, HistoryResponse, PaperAccount, PaperOrder, PaperOrderRequest,
+    PaperOrderResponse, Quote, StockInfo, TradeDay, WatchlistItem,
+)
 
 router = APIRouter()
+
+
+async def _paper_account() -> PaperAccount:
+    from app.main import market_service, paper_trading_service
+
+    codes = paper_trading_service.position_codes()
+    results = await asyncio.gather(
+        *(market_service.get_quote(code) for code in codes), return_exceptions=True
+    )
+    quotes = {quote.code: quote for quote in results if isinstance(quote, Quote)}
+    return paper_trading_service.account(quotes)
 
 
 @router.get("/api/health", response_model=HealthResponse)
@@ -16,7 +30,7 @@ async def health():
     state = market_service.provider.health()
     return HealthResponse(
         status="ok", provider=str(state["name"]), provider_connected=bool(state["connected"]),
-        is_mock=bool(state["is_mock"]), trading_enabled=False,
+        is_mock=bool(state["is_mock"]), trading_enabled=False, paper_trading_enabled=True,
     )
 
 
@@ -76,6 +90,27 @@ async def add_watchlist(item: WatchlistItem):
 async def delete_watchlist(code: str):
     from app.main import watchlist_service
     return watchlist_service.delete(code)
+
+
+@router.get("/api/paper/account", response_model=PaperAccount)
+async def paper_account():
+    return await _paper_account()
+
+
+@router.get("/api/paper/orders", response_model=list[PaperOrder])
+async def paper_orders(limit: int = Query(default=30, ge=1, le=200)):
+    from app.main import paper_trading_service
+    return paper_trading_service.list_orders(limit)
+
+
+@router.post("/api/paper/orders", response_model=PaperOrderResponse, status_code=201)
+async def create_paper_order(request: PaperOrderRequest):
+    from app.main import market_service, paper_trading_service
+
+    quote = await market_service.get_quote(request.code)
+    order = paper_trading_service.execute(request.code, request.side, request.quantity, quote)
+    account = await _paper_account()
+    return PaperOrderResponse(order=order, account=account)
 
 
 @router.websocket("/ws/quotes")

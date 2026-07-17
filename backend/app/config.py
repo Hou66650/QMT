@@ -26,6 +26,8 @@ class Settings:
     history_cache_seconds: int = int(os.getenv("HISTORY_CACHE_SECONDS", "300"))
     websocket_interval_seconds: float = float(os.getenv("WEBSOCKET_INTERVAL_SECONDS", "3"))
     watchlist_file: Path = Path(os.getenv("WATCHLIST_FILE", "data/watchlist.json"))
+    paper_trading_file: Path = Path(os.getenv("PAPER_TRADING_FILE", "data/paper-trading.json"))
+    paper_initial_cash: float = float(os.getenv("PAPER_INITIAL_CASH", "1000000"))
     cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
     trading_enabled: bool = _bool("TRADING_ENABLED", False)
 
