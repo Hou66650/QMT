@@ -72,13 +72,23 @@ MARKET_DATA_PROVIDER=tushare
 TUSHARE_TOKEN=your_local_token
 ```
 
+iFinD 使用容器可用的 HTTP API。将从 iFinD 后台获取的 refresh token 只写入后端环境变量：
+
+```dotenv
+MARKET_DATA_PROVIDER=ifind
+IFIND_REFRESH_TOKEN=your_local_refresh_token
+MARKET_DATA_FALLBACK_PROVIDER=mock
+```
+
+后端会在内存中换取短期 access token，绝不会把 refresh token 或 access token 传给前端。若 iFinD 暂时不可用，响应会明确标为 `MockProvider`。
+
 首次切换到 AkShare 或 Tushare 前安装可选行情依赖：
 
 ```powershell
 pip install -r requirements-marketdata.txt
 ```
 
-不要使用 `NEXT_PUBLIC_` 前缀保存任何 Token；该前缀的值会进入浏览器包。AkShare/Tushare 均为延迟导入，默认 Mock 测试不会发出外部请求。
+不要使用 `NEXT_PUBLIC_` 前缀保存任何 Token；该前缀的值会进入浏览器包。AkShare/Tushare/iFinD 均为延迟导入，默认 Mock 测试不会发出外部请求。
 
 ## API
 

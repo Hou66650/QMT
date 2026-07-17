@@ -18,6 +18,8 @@ class Settings:
     market_data_provider: str = os.getenv("MARKET_DATA_PROVIDER", "mock").lower()
     market_data_fallback_provider: str = os.getenv("MARKET_DATA_FALLBACK_PROVIDER", "mock").lower()
     tushare_token: str | None = os.getenv("TUSHARE_TOKEN")
+    ifind_refresh_token: str | None = os.getenv("IFIND_REFRESH_TOKEN")
+    ifind_base_url: str = os.getenv("IFIND_BASE_URL", "https://quantapi.51ifind.com/api/v1")
     request_timeout_seconds: float = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "8"))
     request_retries: int = int(os.getenv("REQUEST_RETRIES", "2"))
     quote_cache_seconds: int = int(os.getenv("QUOTE_CACHE_SECONDS", "5"))

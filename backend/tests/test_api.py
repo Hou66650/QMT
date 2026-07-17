@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.providers.fallback import FallbackProvider
+from app.providers.factory import create_provider
+from app.providers.ifind import IfindProvider
 from app.providers.mock import MockProvider
 
 client = TestClient(app)
@@ -89,3 +91,88 @@ def test_fallback_history_reports_the_actual_source():
 
     assert response.provider == "MockProvider"
     assert response.is_mock is True
+
+
+class _FakeResponse:
+    def __init__(self, body):
+        self.body = body
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self.body
+
+
+class _FakeIWindClient:
+    def __init__(self, responses):
+        self.responses = iter(responses)
+        self.calls = []
+
+    def post(self, url, headers, json=None):
+        self.calls.append({"url": url, "headers": headers, "json": json})
+        return _FakeResponse(next(self.responses))
+
+
+def test_ifind_uses_http_tokens_and_maps_quote():
+    client = _FakeIWindClient([
+        {"data": {"access_token": "short-lived-token"}},
+        {
+            "errorcode": 0,
+            "tables": [{
+                "time": ["2026-07-17 10:30:00"],
+                "table": {
+                    "thsname": ["贵州茅台"], "latest": [1500], "preClose": [1480],
+                    "change": [20], "changeRatio": [1.35], "open": [1490], "high": [1510],
+                    "low": [1485], "volume": [1000], "amount": [1500000],
+                },
+            }],
+        },
+    ])
+    provider = IfindProvider("refresh-token", base_url="https://ifind.test/api/v1", client=client)
+
+    quote = provider.get_quote("600519")
+
+    assert quote.code == "600519"
+    assert quote.name == "贵州茅台"
+    assert quote.price == 1500
+    assert quote.provider == "iFinDProvider"
+    assert client.calls[0]["headers"]["refresh_token"] == "refresh-token"
+    assert client.calls[1]["headers"]["access_token"] == "short-lived-token"
+    assert client.calls[1]["json"]["codes"] == "600519.SH"
+
+
+def test_ifind_is_registered_in_provider_factory():
+    from app.config import Settings
+
+    provider = create_provider(
+        Settings(market_data_provider="ifind", ifind_refresh_token="local-test-token")
+    )
+
+    assert isinstance(provider, FallbackProvider)
+    assert isinstance(provider.primary, IfindProvider)
+
+
+def test_ifind_maps_history_stock_list_and_calendar():
+    client = _FakeIWindClient([
+        {"data": {"access_token": "short-lived-token"}},
+        {
+            "tables": [{"time": ["2026-01-05", "2026-01-06"], "table": {
+                "open": [10, 11], "high": [12, 13], "low": [9, 10], "close": [11, 12],
+                "volume": [100, 200], "amount": [1100, 2400],
+            }}],
+        },
+        {"tables": [{"table": {"p03291_f001": ["600519.SH"], "p03291_f002": ["贵州茅台"]}}]},
+        {"tables": [{"table": {"sequencedate": ["2026-01-05", "2026-01-06"]}}]},
+    ])
+    provider = IfindProvider("refresh-token", client=client)
+
+    history = provider.get_history("600519", date(2026, 1, 5), date(2026, 1, 6))
+    stocks = provider.get_stock_list()
+    calendar = provider.get_trade_calendar(date(2026, 1, 5), date(2026, 1, 6))
+
+    assert [bar.close for bar in history] == [11, 12]
+    assert stocks[0].code == "600519"
+    assert stocks[0].name == "贵州茅台"
+    assert [item.date for item in calendar] == [date(2026, 1, 5), date(2026, 1, 6)]
+    assert len(client.calls) == 4  # access token is cached after the first exchange

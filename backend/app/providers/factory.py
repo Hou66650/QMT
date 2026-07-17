@@ -3,6 +3,7 @@ from app.config import Settings
 from .akshare import AkShareProvider
 from .base import MarketDataProvider
 from .fallback import FallbackProvider
+from .ifind import IfindProvider
 from .mock import MockProvider
 from .tushare import TushareProvider
 
@@ -12,6 +13,11 @@ def create_provider(settings: Settings) -> MarketDataProvider:
         "mock": lambda: MockProvider(),
         "akshare": lambda: AkShareProvider(),
         "tushare": lambda: TushareProvider(settings.tushare_token),
+        "ifind": lambda: IfindProvider(
+            settings.ifind_refresh_token,
+            base_url=settings.ifind_base_url,
+            timeout_seconds=settings.request_timeout_seconds,
+        ),
     }
     try:
         primary = providers[settings.market_data_provider]()
